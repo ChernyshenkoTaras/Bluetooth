@@ -37,7 +37,7 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
         self.delegate = delegate
         self.centralManager = CBCentralManager(delegate: self, queue: nil)
         self.timer?.invalidate()
-        self.timer = Timer.scheduledTimer(timeInterval: 3.0, target: self, selector: #selector(BTLECentralService.refresh), userInfo: nil, repeats: true)
+//        self.timer = Timer.scheduledTimer(timeInterval: 3.0, target: self, selector: #selector(BTLECentralService.refresh), userInfo: nil, repeats: true)
     }
     
     func refresh() {
@@ -48,7 +48,7 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
     }
     
     func start() {
-        self.centralManager = CBCentralManager(delegate: self, queue: nil)
+//        self.centralManager = CBCentralManager(delegate: self, queue: nil)
         DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 1.0) {
             self.centralManager?.scanForPeripherals(withServices:
                 [transferServiceUUID], options:[:])
@@ -56,8 +56,8 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
     }
     
     func stop() {
-        self.cleanup()
-        self.data = NSMutableData()
+//        self.cleanup()
+//        self.data = NSMutableData()
         self.centralManager?.stopScan()
 //        self.centralManager = CBCentralManager(delegate: self, queue: nil)
     }
@@ -71,8 +71,6 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
             return
         }
         
-        // The state must be CBCentralManagerStatePoweredOn...
-        // ... so start scanning
         scan()
     }
     
@@ -95,25 +93,12 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
      */
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
         
-        // Reject any where the value is above reasonable range
-        // Reject if the signal strength is too low to be close enough (Close is around -22dB)
         
-        //        if  RSSI.integerValue < -15 && RSSI.integerValue > -35 {
-        //            println("Device not at correct range")
-        //            return
-        //        }
-        
-        // Ok, it's in range - have we already seen it?
-        
-        // Save a local copy of the peripheral, so CoreBluetooth doesn't get rid of it
-        
-        self.discoveredPeripheral = peripheral
-        self.rssis[peripheral.identifier.uuidString] = "\(RSSI)"
-        
-        if peripheral.state == .disconnected || peripheral.state == .disconnecting {
-            self.cancelPeripheralConnection()
-        } else if self.discoveredPeripheral == nil {
+        if self.discoveredPeripheral == nil {
             // And connect
+            self.discoveredPeripheral = peripheral
+            self.rssis[peripheral.identifier.uuidString] = "\(RSSI)"
+            
             print("Connecting to peripheral \(peripheral)")
             centralManager?.connect(peripheral, options: nil)
         }
@@ -218,6 +203,7 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
             // and disconnect from the peripehral
             centralManager?.cancelPeripheralConnection(peripheral)
         } else {
+//            peripheral.setNotifyValue(true, for: characteristic)
             // Otherwise, just add the data on to what we already have
             data.append(characteristic.value!)
             

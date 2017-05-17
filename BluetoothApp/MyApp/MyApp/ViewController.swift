@@ -19,9 +19,7 @@ class ViewController: UIViewController, UITableViewDelegate,
     
     @IBAction func refreshNearbyPersonPressed(sender: AnyObject) {
         PersonBTDiscoveryManager.sharedInstance.stopMode(mode: .Duplex)
-        DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 2.0) {
-            PersonBTDiscoveryManager.sharedInstance.startMode(mode: .Duplex)
-        }
+        PersonBTDiscoveryManager.sharedInstance.startMode(mode: .Duplex)
         self.tableView?.reloadData()
     }
     

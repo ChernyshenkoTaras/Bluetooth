@@ -47,8 +47,8 @@ class BTLEPeripheralService: NSObject, CBPeripheralManagerDelegate {
         self.delegate = delegate
         self.peripheralManager = CBPeripheralManager(delegate: self, queue: nil)
         self.timer?.invalidate()
-        self.timer = Timer.scheduledTimer(timeInterval: 3.0, target: self, selector: #selector
-            (BTLEPeripheralService.refresh), userInfo: nil, repeats: true)
+//        self.timer = Timer.scheduledTimer(timeInterval: 3.0, target: self, selector: #selector
+//            (BTLEPeripheralService.refresh), userInfo: nil, repeats: true)
     }
     
     func refresh() {
@@ -58,7 +58,7 @@ class BTLEPeripheralService: NSObject, CBPeripheralManagerDelegate {
     }
     
     func start() {
-        self.peripheralManager = CBPeripheralManager(delegate: self, queue: nil)
+//        self.peripheralManager = CBPeripheralManager(delegate: self, queue: nil)
         DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 1.0) {
             self.peripheralManager!.startAdvertising([
                 CBAdvertisementDataServiceUUIDsKey : [transferServiceUUID]
@@ -67,7 +67,7 @@ class BTLEPeripheralService: NSObject, CBPeripheralManagerDelegate {
     }
     
     func stop() {
-        self.dataToSend = Data()
+//        self.dataToSend = Data()
         self.peripheralManager?.stopAdvertising()
 //        self.peripheralManager = CBPeripheralManager(delegate: self, queue: nil)
     }

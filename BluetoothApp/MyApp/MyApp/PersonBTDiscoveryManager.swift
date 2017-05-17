@@ -39,7 +39,7 @@ class PersonBTDiscoveryManager: BTDiscoveryManager {
     
     override func centralService(_ srvice: BTLECentralService, didReceive data: Data, from PeripheralIdentifier: String) {
         var deserializedResponse = try? JSONSerialization.jsonObject(with: data, options: .allowFragments) as! [String:AnyObject]
-        deserializedResponse!["rssi"] = srvice.rssis[PeripheralIdentifier] as AnyObject!
+        deserializedResponse?["rssi"] = srvice.rssis[PeripheralIdentifier] as AnyObject!
         if let data = deserializedResponse {
             let person = NearbyPerson(dictionary: data)
             self.addNearbyPerson(newPerson: person)
