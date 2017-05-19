@@ -106,6 +106,8 @@ class BTDiscoveryManager: NSObject, BTLECentralServiceDelegate, BTLEPeripheralSe
     // MARK: BTCentralService delegate
     
     func centralService(_ srvice: BTLECentralService, didReceive data: Data, from PeripheralIdentifier: String) {
+        self.stopMode(mode: .Duplex)
+        self.startMode(mode: .Duplex)
         self.delegate?.btDiscoveryManager(manager: self, didReceiveData: data as NSData!)
     }
     

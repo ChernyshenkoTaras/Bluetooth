@@ -30,48 +30,34 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
     weak var delegate: BTLECentralServiceDelegate?
     var state: CBCentralManagerState?
     var rssis: [String : String] = [:]
-    var timer: Timer?
     
     init(delegate: BTLECentralServiceDelegate){
         super.init()
         self.delegate = delegate
-        self.centralManager = CBCentralManager(delegate: self, queue: nil)
-        self.timer?.invalidate()
-//        self.timer = Timer.scheduledTimer(timeInterval: 3.0, target: self, selector: #selector(BTLECentralService.refresh), userInfo: nil, repeats: true)
-    }
-    
-    func refresh() {
-        self.cleanup()
-        self.data = NSMutableData()
-        self.centralManager?.stopScan()
-        self.start()
     }
     
     func start() {
-//        self.centralManager = CBCentralManager(delegate: self, queue: nil)
-        DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 1.0) {
-            self.centralManager?.scanForPeripherals(withServices:
-                [transferServiceUUID], options:[:])
-        }
+        self.centralManager = CBCentralManager(delegate: self, queue: nil)
     }
     
     func stop() {
-//        self.cleanup()
-//        self.data = NSMutableData()
         self.centralManager?.stopScan()
-//        self.centralManager = CBCentralManager(delegate: self, queue: nil)
     }
-
+    
     //MARK: CBCentralManagerDelegate methods
     
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         self.delegate?.centralServiceDidUpdateState(self)
-        guard central.state  == .poweredOn else {
-            // In a real app, you'd deal with all the states correctly
-            return
-        }
+        guard let centralManager = self.centralManager else { return }
         
-        scan()
+        switch centralManager.state {
+            case .poweredOn: self.scan()
+            case .poweredOff: print("poweredOff")
+            case .resetting: print("resetting")
+            case .unauthorized: print("unauthorized")
+            case .unknown: print("unknown")
+            case .unsupported: print("unsupported")
+        }
     }
     
     /** Scan for peripherals - specifically for our service's 128bit CBUUID
@@ -83,7 +69,6 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
                 CBCentralManagerScanOptionAllowDuplicatesKey : NSNumber(value: true as Bool)
             ]
         )
-        
         print("Scanning started")
     }
     
@@ -94,8 +79,9 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
         
         
-        if self.discoveredPeripheral == nil {
+        if self.discoveredPeripheral != peripheral {
             // And connect
+            self.cancelPeripheralConnection()
             self.discoveredPeripheral = peripheral
             self.rssis[peripheral.identifier.uuidString] = "\(RSSI)"
             
@@ -108,26 +94,17 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
      */
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         print("Failed to connect to \(peripheral). (\(error!.localizedDescription))")
-        
-        cleanup()
+        self.cleanup()
     }
     
     /** We've connected to the peripheral, now we need to discover the services and characteristics to find the 'transfer' characteristic.
      */
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         print("Peripheral Connected")
-        
-        // Stop scanning
-        centralManager?.stopScan()
-        print("Scanning stopped")
-        
+
         // Clear the data that we may already have
         data.length = 0
-        
-        // Make sure we get the discovery callbacks
         peripheral.delegate = self
-        
-        // Search only for services that match our UUID
         peripheral.discoverServices([transferServiceUUID])
     }
     
@@ -136,7 +113,7 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         guard error == nil else {
             print("Error discovering services: \(error!.localizedDescription)")
-            cleanup()
+            self.cleanup()
             return
         }
         
@@ -159,7 +136,8 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
         // Deal with errors (if any)
         guard error == nil else {
             print("Error discovering services: \(error!.localizedDescription)")
-            cleanup()
+            self.cleanup()
+            self.discoveredPeripheral = nil
             return
         }
         
@@ -176,7 +154,6 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
                 peripheral.setNotifyValue(true, for: characteristic)
             }
         }
-        // Once this is complete, we just need to wait for the data to come in.
     }
     
     /** This callback lets us know more data has arrived via notification on the characteristic
@@ -203,11 +180,8 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
             // and disconnect from the peripehral
             centralManager?.cancelPeripheralConnection(peripheral)
         } else {
-//            peripheral.setNotifyValue(true, for: characteristic)
-            // Otherwise, just add the data on to what we already have
+            peripheral.setNotifyValue(true, for: characteristic)
             data.append(characteristic.value!)
-            
-            // Log it
             print("Received: \(stringFromData)")
         }
     }
@@ -215,7 +189,9 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
     /** The peripheral letting us know whether our subscribe/unsubscribe happened or not
      */
     func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
-        print("Error changing notification state: \(error?.localizedDescription)")
+        if let error = error {
+            print("Error changing notification state: \(error.localizedDescription)")
+        }
         
         // Exit if it's not the transfer characteristic
         guard characteristic.uuid.isEqual(transferCharacteristicUUID) else {
@@ -223,11 +199,11 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
         }
         
         // Notification has started
-        if (characteristic.isNotifying) {
+        if characteristic.isNotifying && characteristic.value != nil {
             print("Notification began on \(characteristic)")
         } else { // Notification has stopped
             print("Notification stopped on (\(characteristic))  Disconnecting")
-            centralManager?.cancelPeripheralConnection(peripheral)
+            self.centralManager?.cancelPeripheralConnection(peripheral)
         }
     }
     
@@ -235,14 +211,19 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
      */
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         print("Peripheral Disconnected")
-        self.cancelPeripheralConnection()
-        self.refresh()
+        self.cleanup()
+        if let error = error {
+            print(error.localizedDescription)
+        }
     }
     
     fileprivate func cleanup() {
         // See if we are subscribed to a characteristic on the peripheral
+        
+        guard self.discoveredPeripheral?.state != .connected else { return }
+        
         guard let services = discoveredPeripheral?.services else {
-            cancelPeripheralConnection()
+            self.cancelPeripheralConnection()
             return
         }
         
@@ -261,13 +242,11 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
         // If we've got this far, we're connected, but we're not subscribed, so we just disconnect
         if let peripheral = self.discoveredPeripheral {
             self.centralManager?.cancelPeripheralConnection(peripheral)
-            self.discoveredPeripheral = nil
         }
     }
-    
+
     func peripheral(_ peripheral: CBPeripheral,
         didModifyServices invalidatedServices: [CBService]) {
         print("Modified")
-        self.refresh()
     }
 }

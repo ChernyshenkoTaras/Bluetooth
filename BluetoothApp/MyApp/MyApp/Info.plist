@@ -17,7 +17,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
-	<string>2</string>
+	<string>4</string>
 	<key>Fabric</key>
 	<dict>
 		<key>APIKey</key>
@@ -35,7 +35,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>My App would like to make data available to nearby bluetooth devices even when you&apos;re not using the app.</string>
+	<string>My App would like to make data available to nearby bluetooth devices even when you're not using the app.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>$(PRODUCT_NAME) needs access to use your camera</string>
 	<key>NSPhotoLibraryUsageDescription</key>

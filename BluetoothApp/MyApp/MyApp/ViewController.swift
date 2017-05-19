@@ -46,6 +46,7 @@ class ViewController: UIViewController, UITableViewDelegate,
         let person = self.nearbyPersons[indexPath.row]
         cell.textLabel?.text = person.username
         cell.imageView?.image = person.image
+        cell.isUserInteractionEnabled = false
         cell.detailTextLabel?.text = "RSSI:" + person.rssi!
         return cell
     }

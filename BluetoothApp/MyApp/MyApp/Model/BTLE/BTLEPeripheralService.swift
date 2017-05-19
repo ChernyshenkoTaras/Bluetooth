@@ -45,47 +45,25 @@ class BTLEPeripheralService: NSObject, CBPeripheralManagerDelegate {
     init(delegate: BTLEPeripheralServiceDelegate) {
         super.init()
         self.delegate = delegate
-        self.peripheralManager = CBPeripheralManager(delegate: self, queue: nil)
-        self.timer?.invalidate()
-//        self.timer = Timer.scheduledTimer(timeInterval: 3.0, target: self, selector: #selector
-//            (BTLEPeripheralService.refresh), userInfo: nil, repeats: true)
-    }
-    
-    func refresh() {
-        self.dataToSend = Data()
-        self.peripheralManager?.stopAdvertising()
-        self.start()
     }
     
     func start() {
-//        self.peripheralManager = CBPeripheralManager(delegate: self, queue: nil)
-        DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 1.0) {
-            self.peripheralManager!.startAdvertising([
-                CBAdvertisementDataServiceUUIDsKey : [transferServiceUUID]
-        ])
-        }
+        self.peripheralManager = CBPeripheralManager(delegate: self, queue: nil)
     }
     
     func stop() {
-//        self.dataToSend = Data()
         self.peripheralManager?.stopAdvertising()
-//        self.peripheralManager = CBPeripheralManager(delegate: self, queue: nil)
     }
     
     func peripheralManagerDidUpdateState(_ peripheral: CBPeripheralManager) {
         // Opt out from any other state
         self.delegate?.peripheralServiceDidUpdateState(self)
-        if (peripheral.state != .poweredOn) {
-            return
-        }
+        guard peripheral.state == .poweredOn else { return }
         
-        self.peripheralManager?.stopAdvertising()
-        // We're in CBPeripheralManagerStatePoweredOn state...
+        self.peripheralManager!.startAdvertising([
+            CBAdvertisementDataServiceUUIDsKey : [transferServiceUUID]
+            ])
         print("self.peripheralManager powered on.")
-        
-        // ... so build our service.
-        
-        // Start with the CBMutableCharacteristic
         transferCharacteristic = CBMutableCharacteristic(
             type: transferCharacteristicUUID,
             properties: CBCharacteristicProperties.notify,
@@ -93,30 +71,30 @@ class BTLEPeripheralService: NSObject, CBPeripheralManagerDelegate {
             permissions: CBAttributePermissions.readable
         )
         
-        // Then the service
         let transferService = CBMutableService(
             type: transferServiceUUID,
             primary: true
         )
         
-        // Add the characteristic to the service
         transferService.characteristics = [transferCharacteristic!]
         
-        // And add it to the peripheral manager
         peripheralManager!.add(transferService)
     }
     
     /** Catch when someone subscribes to our characteristic, then start sending them data
      */
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didSubscribeTo characteristic: CBCharacteristic) {
-        print("Central subscribed to characteristic")
+        
         
         // Get the data
-        dataToSend = self.delegate?.dataToBroadcastForPeripheralService(self, for: central.identifier.uuidString) ?? Data()
+        guard self.peripheralManager?.state == .poweredOn else {
+            return
+        }
         
+        print("Central subscribed to characteristic")
+        dataToSend = self.delegate?.dataToBroadcastForPeripheralService(self, for: central.identifier.uuidString) ?? Data()
         // Reset the index
         sendDataIndex = 0;
-        
         // Start sending
         sendData()
     }
@@ -201,7 +179,7 @@ class BTLEPeripheralService: NSObject, CBPeripheralManagerDelegate {
                 encoding: String.Encoding.utf8.rawValue
             )
             
-            print("Sent: \(stringFromData)")
+            print("Sent: \(stringFromData ?? "")")
             
             // It did send, so update our index
             sendDataIndex! += amountToSend;
@@ -236,14 +214,12 @@ class BTLEPeripheralService: NSObject, CBPeripheralManagerDelegate {
      *  This is to ensure that packets will arrive in the order they are sent
      */
     func peripheralManagerIsReady(toUpdateSubscribers peripheral: CBPeripheralManager) {
-        // Start sending again
         sendData()
     }
     
     func peripheralManagerDidStartAdvertising(_ peripheral: CBPeripheralManager, error: Error?) {
         if let error = error {
             print(error)
-            self.refresh()
         }
     }
 }
