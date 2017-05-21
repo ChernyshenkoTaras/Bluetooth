@@ -13,14 +13,15 @@ class ViewController: UIViewController, UITableViewDelegate,
 
     @IBOutlet private weak var tableView: UITableView?
     
+    private let manager: PersonBTDiscoveryManager = PersonBTDiscoveryManager()
+    
     var nearbyPersons: [NearbyPerson] {
-        return PersonBTDiscoveryManager.sharedInstance.nearbyPersons
+        return self.manager.nearbyPersons
     }
     
     @IBAction func refreshNearbyPersonPressed(sender: AnyObject) {
-        PersonBTDiscoveryManager.sharedInstance.stopMode(mode: .Duplex)
-        PersonBTDiscoveryManager.sharedInstance.startMode(mode: .Duplex)
-        self.tableView?.reloadData()
+        self.manager.stopMode(mode: .Duplex)
+        self.manager.startMode(mode: .Duplex)
     }
     
     override func viewDidLoad() {
@@ -28,12 +29,12 @@ class ViewController: UIViewController, UITableViewDelegate,
         self.tableView?.delegate = self
         self.tableView?.dataSource = self
         
-        PersonBTDiscoveryManager.sharedInstance.personDelegate = self
+        self.manager.personDelegate = self
     }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        PersonBTDiscoveryManager.sharedInstance.startMode(mode: .Duplex)
+        manager.startMode(mode: .Duplex)
     }
     //MARK: UITableViewDataSource methods
     

@@ -10,15 +10,7 @@ protocol PersonBTDiscoveryManagerDelegate: class {
 
 class PersonBTDiscoveryManager: BTDiscoveryManager {
     
-    class var sharedInstance : PersonBTDiscoveryManager {
-        struct Static {
-            static let instance = PersonBTDiscoveryManager()
-        }
-        return Static.instance
-    }
-    
     private let personInvalidationInterval: TimeInterval = 10
-    private var personInvalidationTimer: Timer!
     
     private(set) var nearbyPersons: [NearbyPerson] = []
     
@@ -41,14 +33,14 @@ class PersonBTDiscoveryManager: BTDiscoveryManager {
         }
     }
     
-    override func dataToBroadcastForPeripheralService(_ service: BTLEPeripheralService, for peripheralIdentifier: String) -> Data {
+    override func dataToBroadcastForPeripheralService(_ service: BTLEPeripheralService) -> Data {
         let person = NearbyPerson.current
         var dictionary = person.dictionaryValue()
-        dictionary["identifier"] = peripheralIdentifier as AnyObject?
+//        dictionary["identifier"] = peripheralIdentifier as AnyObject?
         dictionary["username"] = Settings.current.username as AnyObject?
         let imageData =  UIImageJPEGRepresentation(Settings.current.image, 0)!
         dictionary["image"] = imageData.base64EncodedString() as AnyObject?
-        dictionary["rssi"] = "" as AnyObject?
+        dictionary["rssi"] = "-50" as AnyObject?
         
         let data = try? JSONSerialization.data(withJSONObject: dictionary, options: JSONSerialization.WritingOptions())
         return data!

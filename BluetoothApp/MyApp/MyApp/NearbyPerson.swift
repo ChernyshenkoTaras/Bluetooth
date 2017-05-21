@@ -16,8 +16,10 @@ class NearbyPerson: NSObject {
         super.init()
         self.identifier = dictionary["identifier"] as? String ?? ""
         self.username = dictionary["username"] as? String ?? ""
-        if let data = dictionary["image"] as? String {
-            self.image = UIImage(data: Data(base64Encoded: data)!)!
+        if let data = dictionary["image"] as? String,
+            let encodedData = Data(base64Encoded: data),
+            let image =  UIImage(data: encodedData) {
+            self.image = image
         } else {
             self.image = UIImage(named: "user_image")!
         }

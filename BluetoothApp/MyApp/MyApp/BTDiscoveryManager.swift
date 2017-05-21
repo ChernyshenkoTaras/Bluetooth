@@ -10,7 +10,7 @@ protocol BTDiscoveryManagerDelegate: class {
 }
 
 protocol BTDiscoveryManagerDataSource: class {
-    func dataToBroadcastForBTDiscoveryManager(manager: BTDiscoveryManager, peripheralIdentifier: String) -> Data
+    func dataToBroadcastForBTDiscoveryManager(manager: BTDiscoveryManager) -> Data
 }
 
 func |(a: BTDiscoveryManager.Mode, b: BTDiscoveryManager.Mode) -> BTDiscoveryManager.Mode {
@@ -40,6 +40,7 @@ class BTDiscoveryManager: NSObject, BTLECentralServiceDelegate, BTLEPeripheralSe
     private(set) var mode: Mode = .None
     private var centralService: BTLECentralService?
     private var peripheralService: BTLEPeripheralService?
+    private var discoveredData: [String : Data] = [:]
     
     override init() {
         super.init()
@@ -101,6 +102,7 @@ class BTDiscoveryManager: NSObject, BTLECentralServiceDelegate, BTLEPeripheralSe
     // MARK: BTCentralService delegate
     
     func centralService(_ srvice: BTLECentralService, didReceive data: Data, from PeripheralIdentifier: String) {
+        self.discoveredData[PeripheralIdentifier] = data
         self.delegate?.btDiscoveryManager(manager: self, didReceiveData: data as NSData!)
     }
     
@@ -112,10 +114,17 @@ class BTDiscoveryManager: NSObject, BTLECentralServiceDelegate, BTLEPeripheralSe
         }
     }
     
+    func centralService(_ service: BTLECentralService,
+        discover PeripheralIdentifier: String){
+        if let data = self.discoveredData[PeripheralIdentifier] {
+            self.delegate?.btDiscoveryManager(manager: self, didReceiveData: data as NSData!)
+        }
+    }
+    
     // MARK: BTPeripheralService delegate
     
-    func dataToBroadcastForPeripheralService(_ service: BTLEPeripheralService, for peripheralIdentifier: String) -> Data {
-        return self.dataSource!.dataToBroadcastForBTDiscoveryManager(manager: self, peripheralIdentifier: peripheralIdentifier)
+    func dataToBroadcastForPeripheralService(_ service: BTLEPeripheralService) -> Data {
+        return self.dataSource!.dataToBroadcastForBTDiscoveryManager(manager: self)
     }
     
     func peripheralServiceDidUpdateState(_ service: BTLEPeripheralService) {
