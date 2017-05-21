@@ -16,7 +16,7 @@ class PersonBTDiscoveryManager: BTDiscoveryManager {
         }
         return Static.instance
     }
-    // interval for filtering persons, old persons(with seen date + interval < current date) will be removed after this interval
+    
     private let personInvalidationInterval: TimeInterval = 10
     private var personInvalidationTimer: Timer!
     
@@ -26,14 +26,9 @@ class PersonBTDiscoveryManager: BTDiscoveryManager {
     
     weak var personDelegate: PersonBTDiscoveryManagerDelegate?
     
-    override init() {
-        super.init()
-//        self.personInvalidationTimer = Timer.scheduledTimer(timeInterval: self.personInvalidationInterval, target: self, selector: #selector(PersonBTDiscoveryManager.filterNearbyPersons), userInfo: nil, repeats: true)
-    }
-    
     override func stopMode(mode: Mode) {
         super.stopMode(mode: mode)
-        self.nearbyPersons.removeAll(keepingCapacity: false)
+        self.nearbyPersons = []
         self.personDelegate?.personBTDiscoveryManager(manager: self, didUpdatePersonList: self.nearbyPersons)
     }
     

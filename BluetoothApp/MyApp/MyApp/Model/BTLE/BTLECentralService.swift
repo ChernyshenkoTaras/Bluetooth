@@ -60,8 +60,6 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
         }
     }
     
-    /** Scan for peripherals - specifically for our service's 128bit CBUUID
-     */
     func scan() {
         
         centralManager?.scanForPeripherals(
@@ -72,48 +70,36 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
         print("Scanning started")
     }
     
-    /** This callback comes whenever a peripheral that is advertising the TRANSFER_SERVICE_UUID is discovered.
-     *  We check the RSSI, to make sure it's close enough that we're interested in it, and if it is,
-     *  we start the connection process
-     */
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
         
-        
-        if self.discoveredPeripheral != peripheral {
+        print("Discover peripheral")
+        if self.discoveredPeripheral == nil {
             // And connect
-            self.cancelPeripheralConnection()
+            central.stopScan()
+            central.connect(peripheral, options: nil)
             self.discoveredPeripheral = peripheral
+            self.discoveredPeripheral?.delegate = self
             self.rssis[peripheral.identifier.uuidString] = "\(RSSI)"
-            
-            print("Connecting to peripheral \(peripheral)")
-            centralManager?.connect(peripheral, options: nil)
+            print("Connecting to peripheral \(self.discoveredPeripheral!)")
         }
     }
     
-    /** If the connection fails for whatever reason, we need to deal with it.
-     */
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         print("Failed to connect to \(peripheral). (\(error!.localizedDescription))")
-        self.cleanup()
     }
     
-    /** We've connected to the peripheral, now we need to discover the services and characteristics to find the 'transfer' characteristic.
-     */
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         print("Peripheral Connected")
 
         // Clear the data that we may already have
         data.length = 0
-        peripheral.delegate = self
         peripheral.discoverServices([transferServiceUUID])
     }
     
-    /** The Transfer Service was discovered
-     */
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
+        print("didDiscoverServices")
         guard error == nil else {
             print("Error discovering services: \(error!.localizedDescription)")
-            self.cleanup()
             return
         }
         
@@ -129,15 +115,11 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
         }
     }
     
-    /** The Transfer characteristic was discovered.
-     *  Once this has been found, we want to subscribe to it, which lets the peripheral know we want the data it contains
-     */
     func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
+        print("didDiscoverCharacteristics")
         // Deal with errors (if any)
         guard error == nil else {
             print("Error discovering services: \(error!.localizedDescription)")
-            self.cleanup()
-            self.discoveredPeripheral = nil
             return
         }
         
@@ -185,9 +167,7 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
             print("Received: \(stringFromData)")
         }
     }
-    
-    /** The peripheral letting us know whether our subscribe/unsubscribe happened or not
-     */
+
     func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
         if let error = error {
             print("Error changing notification state: \(error.localizedDescription)")
@@ -199,7 +179,7 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
         }
         
         // Notification has started
-        if characteristic.isNotifying && characteristic.value != nil {
+        if characteristic.isNotifying {
             print("Notification began on \(characteristic)")
         } else { // Notification has stopped
             print("Notification stopped on (\(characteristic))  Disconnecting")
@@ -212,12 +192,14 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         print("Peripheral Disconnected")
         self.cleanup()
+        self.discoveredPeripheral = nil
+        self.start()
         if let error = error {
             print(error.localizedDescription)
         }
     }
     
-    fileprivate func cleanup() {
+    private func cleanup() {
         // See if we are subscribed to a characteristic on the peripheral
         
         guard self.discoveredPeripheral?.state != .connected else { return }
@@ -248,5 +230,8 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
     func peripheral(_ peripheral: CBPeripheral,
         didModifyServices invalidatedServices: [CBService]) {
         print("Modified")
+        self.cleanup()
+        self.discoveredPeripheral = nil
+        self.start()
     }
 }

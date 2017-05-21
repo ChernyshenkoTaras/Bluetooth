@@ -10,7 +10,7 @@ protocol BTDiscoveryManagerDelegate: class {
 }
 
 protocol BTDiscoveryManagerDataSource: class {
-    func dataToBroadcastForBTDiscoveryManager(manager: BTDiscoveryManager, peripheralIdentifier: String) -> NSData!
+    func dataToBroadcastForBTDiscoveryManager(manager: BTDiscoveryManager, peripheralIdentifier: String) -> Data
 }
 
 func |(a: BTDiscoveryManager.Mode, b: BTDiscoveryManager.Mode) -> BTDiscoveryManager.Mode {
@@ -38,19 +38,6 @@ class BTDiscoveryManager: NSObject, BTLECentralServiceDelegate, BTLEPeripheralSe
     weak var dataSource: BTDiscoveryManagerDataSource?
     
     private(set) var mode: Mode = .None
-    
-    var isBluetoothOn: Bool {
-        get {
-            return self.centralService?.state == CBCentralManagerState.poweredOn || self.peripheralService?.state == CBPeripheralManagerState.poweredOn
-        }
-    }
-    
-    var isBluetoothOff: Bool {
-        get {
-            return self.centralService?.state == CBCentralManagerState.poweredOff || self.peripheralService?.state == CBPeripheralManagerState.poweredOff
-        }
-    }
-    
     private var centralService: BTLECentralService?
     private var peripheralService: BTLEPeripheralService?
     
@@ -61,9 +48,7 @@ class BTDiscoveryManager: NSObject, BTLECentralServiceDelegate, BTLEPeripheralSe
     }
     
     private func startCentralService() {
-        if (self.centralService == nil) {
-            self.centralService = BTLECentralService(delegate: self)
-        }
+        self.centralService = BTLECentralService(delegate: self)
         self.centralService?.start()
     }
     
@@ -72,16 +57,26 @@ class BTDiscoveryManager: NSObject, BTLECentralServiceDelegate, BTLEPeripheralSe
         self.centralService = nil
     }
     
+    private func stopPeripheralService() {
+        self.peripheralService?.stop()
+        self.peripheralService = nil
+    }
+    
+    private func startPeripheralService() {
+        self.peripheralService = BTLEPeripheralService(delegate: self)
+        self.peripheralService?.start()
+    }
+    
     func startMode(mode: Mode) {
         self.mode = self.mode | mode
         switch mode {
         case .Broadcasting:
-            self.peripheralService?.start()
+            self.startPeripheralService()
         case .Receiving:
             self.startCentralService()
         case .Duplex:
             self.startCentralService()
-            self.peripheralService?.start()
+            self.startPeripheralService()
 
         default:
             return
@@ -92,12 +87,12 @@ class BTDiscoveryManager: NSObject, BTLECentralServiceDelegate, BTLEPeripheralSe
         self.mode = self.mode ^ mode
         switch mode {
         case .Broadcasting:
-            self.peripheralService?.stop()
+            self.stopPeripheralService()
         case .Receiving:
             self.stopCentralService()
         case .Duplex:
             self.stopCentralService()
-            self.peripheralService?.stop()
+            self.stopPeripheralService()
         default:
             return
         }
@@ -106,8 +101,6 @@ class BTDiscoveryManager: NSObject, BTLECentralServiceDelegate, BTLEPeripheralSe
     // MARK: BTCentralService delegate
     
     func centralService(_ srvice: BTLECentralService, didReceive data: Data, from PeripheralIdentifier: String) {
-        self.stopMode(mode: .Duplex)
-        self.startMode(mode: .Duplex)
         self.delegate?.btDiscoveryManager(manager: self, didReceiveData: data as NSData!)
     }
     
@@ -122,7 +115,7 @@ class BTDiscoveryManager: NSObject, BTLECentralServiceDelegate, BTLEPeripheralSe
     // MARK: BTPeripheralService delegate
     
     func dataToBroadcastForPeripheralService(_ service: BTLEPeripheralService, for peripheralIdentifier: String) -> Data {
-        return self.dataSource?.dataToBroadcastForBTDiscoveryManager(manager: self, peripheralIdentifier: peripheralIdentifier) as! Data
+        return self.dataSource!.dataToBroadcastForBTDiscoveryManager(manager: self, peripheralIdentifier: peripheralIdentifier)
     }
     
     func peripheralServiceDidUpdateState(_ service: BTLEPeripheralService) {

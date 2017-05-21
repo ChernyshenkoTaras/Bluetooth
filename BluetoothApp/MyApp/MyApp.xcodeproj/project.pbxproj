@@ -44,6 +44,7 @@
 		2FA49C031EC1E4DE00F7F96F /* PersonBTDiscoveryManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PersonBTDiscoveryManager.swift; sourceTree = "<group>"; };
 		2FA49C061EC1E56E00F7F96F /* NearbyPerson.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NearbyPerson.swift; sourceTree = "<group>"; };
 		2FA49C091EC1F15200F7F96F /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
+		2FC92BBA1ED1819A00FAAE7B /* MyApp-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "MyApp-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -90,6 +91,7 @@
 				2FA49BF11EC1D4ED00F7F96F /* Assets.xcassets */,
 				2FA49BF31EC1D4ED00F7F96F /* LaunchScreen.storyboard */,
 				2FA49BF61EC1D4ED00F7F96F /* Info.plist */,
+				2FC92BBA1ED1819A00FAAE7B /* MyApp-Bridging-Header.h */,
 			);
 			path = MyApp;
 			sourceTree = "<group>";
@@ -158,6 +160,7 @@
 					2FA49BE61EC1D4ED00F7F96F = {
 						CreatedOnToolsVersion = 8.2.1;
 						DevelopmentTeam = 499VY3GCQH;
+						LastSwiftMigration = 0830;
 						ProvisioningStyle = Manual;
 						SystemCapabilities = {
 							com.apple.BackgroundModes = {
@@ -351,6 +354,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				DEVELOPMENT_TEAM = 499VY3GCQH;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -364,6 +368,8 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "e00cd46a-f44e-4542-8a22-edffdd59e121";
 				PROVISIONING_PROFILE_SPECIFIER = bluetooth;
+				SWIFT_OBJC_BRIDGING_HEADER = "MyApp/MyApp-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 3.0;
 			};
 			name = Debug;
@@ -372,6 +378,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				DEVELOPMENT_TEAM = 499VY3GCQH;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -385,6 +392,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "e00cd46a-f44e-4542-8a22-edffdd59e121";
 				PROVISIONING_PROFILE_SPECIFIER = bluetooth;
+				SWIFT_OBJC_BRIDGING_HEADER = "MyApp/MyApp-Bridging-Header.h";
 				SWIFT_VERSION = 3.0;
 			};
 			name = Release;

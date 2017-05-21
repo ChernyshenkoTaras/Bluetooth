@@ -9,19 +9,6 @@
 import Foundation
 import CoreBluetooth
 
-// FIXME: comparison operators with optionals were removed from the Swift Standard Libary.
-// Consider refactoring the code to use the non-optional operators.
-fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
-    switch (lhs, rhs) {
-    case let (l?, r?):
-        return l < r
-    case (nil, _?):
-        return true
-    default:
-        return false
-    }
-}
-
 protocol BTLEPeripheralServiceDelegate: class {
     func dataToBroadcastForPeripheralService(_ service: BTLEPeripheralService,
         for peripheralIdentifier: String) -> Data
@@ -103,6 +90,7 @@ class BTLEPeripheralService: NSObject, CBPeripheralManagerDelegate {
      */
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didUnsubscribeFrom characteristic: CBCharacteristic) {
         print("Central unsubscribed from characteristic")
+        self.start()
     }
     
     // First up, check if we're meant to be sending an EOM
@@ -210,11 +198,8 @@ class BTLEPeripheralService: NSObject, CBPeripheralManagerDelegate {
         }
     }
     
-    /** This callback comes in when the PeripheralManager is ready to send the next chunk of data.
-     *  This is to ensure that packets will arrive in the order they are sent
-     */
     func peripheralManagerIsReady(toUpdateSubscribers peripheral: CBPeripheralManager) {
-        sendData()
+        self.sendData()
     }
     
     func peripheralManagerDidStartAdvertising(_ peripheral: CBPeripheralManager, error: Error?) {
