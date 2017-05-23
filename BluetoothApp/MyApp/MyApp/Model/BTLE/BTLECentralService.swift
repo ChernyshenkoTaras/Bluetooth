@@ -26,10 +26,11 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
     CBPeripheralDelegate {
     
     var centralManager: CBCentralManager?
-    var discoveredPeripheral: CBPeripheral?
     fileprivate var data = NSMutableData()
     
     weak var delegate: BTLECentralServiceDelegate?
+    private var peripherals: [String : CBPeripheral] = [:]
+    
     var state: CBCentralManagerState?
     var rssis: [String : String] = [:]
     var timer: Timer?
@@ -50,10 +51,6 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
     
     func stop() {
         self.centralManager?.stopScan()
-        if let peripheral = self.discoveredPeripheral {
-            self.centralManager?.cancelPeripheralConnection(peripheral)
-            self.discoveredPeripheral = nil
-        }
     }
     
     //MARK: CBCentralManagerDelegate methods
@@ -80,22 +77,22 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
         
         self.delegate?.centralService(self, discover: peripheral.identifier.uuidString)
-        let retievedPeripherals = central.retrievePeripherals(withIdentifiers: [])
-        for retievedPeripheral in retievedPeripherals {
-            central.connect(retievedPeripheral, options: nil)
+        central.stopScan()
+        
+        self.rssis[peripheral.identifier.uuidString] = "\(RSSI)"
+        
+        if self.peripherals[peripheral.identifier.uuidString] == nil {
+            self.peripherals[peripheral.identifier.uuidString] = peripheral
         }
-        if !retievedPeripherals.contains(peripheral) {
-            // And connect
-            
-            self.discoveredPeripheral = peripheral
-            self.discoveredPeripheral?.delegate = self
-            central.stopScan()
-            
-            central.connect(peripheral, options: nil)
-            
-            self.rssis[peripheral.identifier.uuidString] = "\(RSSI)"
-            print("Connecting to peripheral \(peripheral)")
+        
+        let keys: [String] = self.peripherals.keys.map { $0 }
+        for key in keys {
+            if let peripheral = self.peripherals[key] {
+                peripheral.delegate = self
+                self.centralManager?.connect(peripheral, options: nil)
+            }
         }
+        print("Connecting to peripheral \(peripheral)")
     }
     
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
@@ -104,7 +101,7 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
     
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         print("Peripheral Connected with identifier: \(peripheral.identifier.uuidString)")
-        self.discoveredPeripheral?.discoverServices(nil)
+        peripheral.discoverServices(nil)
     }
     
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
@@ -162,8 +159,16 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
      */
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         print("Peripheral Disconnected")
-        self.stop()
-        self.start()
+        let keys: [String] = self.peripherals.keys.map { $0 }
+        for key in keys {
+            if let peripheral = self.peripherals[key] {
+                peripheral.delegate = self
+                self.centralManager?.cancelPeripheralConnection(peripheral)
+            }
+        }
+        self.peripherals = [:]
+        self.scan()
+        
         if let error = error {
             print(error.localizedDescription)
         }
