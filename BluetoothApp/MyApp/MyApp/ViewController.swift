@@ -20,8 +20,8 @@ class ViewController: UIViewController, UITableViewDelegate,
     }
     
     @IBAction func refreshNearbyPersonPressed(sender: AnyObject) {
-        self.manager.stopMode(mode: .Duplex)
-        self.manager.startMode(mode: .Duplex)
+        self.manager.stopMode(mode: .Receiving)
+        self.manager.startMode(mode: .Receiving)
     }
     
     override func viewDidLoad() {

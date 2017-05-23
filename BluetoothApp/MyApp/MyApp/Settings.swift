@@ -39,7 +39,7 @@ class Settings {
             }
         }
         set {
-            if let image = newValue.resized(withPercentage: 0.1) {
+            if let image = newValue.resized(withPercentage: 0.005) {
                 let data = UIImageJPEGRepresentation(image, 0)
                 self.userDefaults?.set(data, forKey: ImageIdentifier)
             }
