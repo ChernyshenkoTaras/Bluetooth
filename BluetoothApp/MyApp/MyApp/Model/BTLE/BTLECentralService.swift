@@ -26,10 +26,10 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
     CBPeripheralDelegate {
     
     var centralManager: CBCentralManager?
-    fileprivate var data = NSMutableData()
+    fileprivate var data: [String : NSMutableData] = [:]
     
     weak var delegate: BTLECentralServiceDelegate?
-    private var peripherals: [String : CBPeripheral] = [:]
+    private var peripherals: [CBPeripheral] = []
     
     var state: CBCentralManagerState?
     var rssis: [String : String] = [:]
@@ -51,6 +51,10 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
     
     func stop() {
         self.centralManager?.stopScan()
+//        for peripheral in self.peripherals {
+//            self.centralManager?.cancelPeripheralConnection(peripheral)
+//        }
+//        self.peripherals = []
     }
     
     //MARK: CBCentralManagerDelegate methods
@@ -70,29 +74,22 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
     }
     
     func scan() {
-        self.centralManager?.scanForPeripherals(withServices: nil)
+        self.centralManager?.scanForPeripherals(withServices: [transferServiceUUID], options: nil)
         print("Scanning started")
     }
     
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
         
         self.delegate?.centralService(self, discover: peripheral.identifier.uuidString)
-        central.stopScan()
         
         self.rssis[peripheral.identifier.uuidString] = "\(RSSI)"
         
-        if self.peripherals[peripheral.identifier.uuidString] == nil {
-            self.peripherals[peripheral.identifier.uuidString] = peripheral
+        if !self.peripherals.contains(peripheral) {
+            self.peripherals.append(peripheral)
+            peripheral.delegate = self
+            self.centralManager?.connect(peripheral, options: nil)
+            print("Connecting to peripheral \(peripheral)")
         }
-        
-        let keys: [String] = self.peripherals.keys.map { $0 }
-        for key in keys {
-            if let peripheral = self.peripherals[key] {
-                peripheral.delegate = self
-                self.centralManager?.connect(peripheral, options: nil)
-            }
-        }
-        print("Connecting to peripheral \(peripheral)")
     }
     
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
@@ -101,7 +98,7 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
     
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         print("Peripheral Connected with identifier: \(peripheral.identifier.uuidString)")
-        peripheral.discoverServices(nil)
+        peripheral.discoverServices([transferServiceUUID])
     }
     
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
@@ -113,7 +110,7 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
         }
         // Loop through the newly filled peripheral.services array, just in case there's more than one.
         for service in peripheral.services ?? [] {
-            peripheral.discoverCharacteristics(nil, for: service)
+            peripheral.discoverCharacteristics([transferCharacteristicUUID], for: service)
         }
     }
     
@@ -144,13 +141,16 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
             print("Invalid data")
             return
         }
-        
+
         if data.count == 0 {
-            self.delegate?.centralService(self, didReceive: self.data as Data,
+            self.delegate?.centralService(self, didReceive: self.data[peripheral.identifier.uuidString]! as Data,
                 from: peripheral.identifier.uuidString)
-            self.data.length = 0
+            self.data[peripheral.identifier.uuidString] = nil
         } else {
-            self.data.append(data)
+            if self.data[peripheral.identifier.uuidString] == nil {
+                self.data[peripheral.identifier.uuidString] = NSMutableData()
+            }
+            self.data[peripheral.identifier.uuidString]?.append(data)
             peripheral.readValue(for: characteristic)
         }
     }
@@ -159,14 +159,11 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
      */
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         print("Peripheral Disconnected")
-        let keys: [String] = self.peripherals.keys.map { $0 }
-        for key in keys {
-            if let peripheral = self.peripherals[key] {
+        for peripheral in self.peripherals {
                 peripheral.delegate = self
                 self.centralManager?.cancelPeripheralConnection(peripheral)
-            }
         }
-        self.peripherals = [:]
+        self.peripherals = []
         self.scan()
         
         if let error = error {
@@ -178,7 +175,7 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
         didModifyServices invalidatedServices: [CBService]) {
         print("Modified peripheral with identifier: \(peripheral.identifier.uuidString)")
         for service in invalidatedServices {
-            peripheral.discoverCharacteristics(nil, for: service)
+            peripheral.discoverCharacteristics([transferCharacteristicUUID], for: service)
         }
     }
 }

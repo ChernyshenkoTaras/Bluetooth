@@ -33,10 +33,10 @@ class PersonBTDiscoveryManager: BTDiscoveryManager {
         }
     }
     
-    override func dataToBroadcastForPeripheralService(_ service: BTLEPeripheralService) -> Data {
+    override func dataToBroadcastForPeripheralService(_ service: BTLEPeripheralService, peripheralIdentifier: String) -> Data {
         let person = NearbyPerson.current
         var dictionary = person.dictionaryValue()
-//        dictionary["identifier"] = peripheralIdentifier as AnyObject?
+        dictionary["identifier"] = peripheralIdentifier as AnyObject?
         dictionary["username"] = Settings.current.username as AnyObject?
         let imageData =  UIImageJPEGRepresentation(Settings.current.image, 0)!
         dictionary["image"] = imageData.base64EncodedString() as AnyObject?
@@ -65,13 +65,10 @@ class PersonBTDiscoveryManager: BTDiscoveryManager {
     
     private func addNearbyPerson(newPerson: NearbyPerson) {
         let existingPerson = self.nearbyPersons.filter {
-            $0.identifier == newPerson.identifier }.first
+            $0.username == newPerson.username }.first
         if existingPerson != nil {
             existingPerson!.lastSeenDate = NSDate()
-            if (newPerson.identifier != existingPerson!.identifier) {
-                existingPerson!.updateWithPerson(person: newPerson)
-                self.personDelegate?.personBTDiscoveryManager(manager: self, didUpdatePersonList: self.nearbyPersons)
-            }
+            self.personDelegate?.personBTDiscoveryManager(manager: self, didUpdatePersonList: self.nearbyPersons)
         }
         else {
             newPerson.lastSeenDate = NSDate()

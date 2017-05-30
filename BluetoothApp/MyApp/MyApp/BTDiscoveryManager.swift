@@ -10,7 +10,7 @@ protocol BTDiscoveryManagerDelegate: class {
 }
 
 protocol BTDiscoveryManagerDataSource: class {
-    func dataToBroadcastForBTDiscoveryManager(manager: BTDiscoveryManager) -> Data
+    func dataToBroadcastForBTDiscoveryManager(manager: BTDiscoveryManager, peripheralIdentifier identifier: String) -> Data
 }
 
 func |(a: BTDiscoveryManager.Mode, b: BTDiscoveryManager.Mode) -> BTDiscoveryManager.Mode {
@@ -41,11 +41,17 @@ class BTDiscoveryManager: NSObject, BTLECentralServiceDelegate, BTLEPeripheralSe
     private var centralService: BTLECentralService?
     private var peripheralService: BTLEPeripheralService?
     private var discoveredData: [String : Data] = [:]
+    private var timer: Timer?
     
     override init() {
         super.init()
         self.centralService = BTLECentralService(delegate: self)
         self.peripheralService = BTLEPeripheralService(delegate: self)
+        self.timer = Timer.scheduledTimer(timeInterval: 10.0, target: self, selector: #selector(BTDiscoveryManager.restart), userInfo: nil, repeats: true)
+    }
+    
+    func restart() {
+        
     }
     
     private func startCentralService() {
@@ -123,8 +129,8 @@ class BTDiscoveryManager: NSObject, BTLECentralServiceDelegate, BTLEPeripheralSe
     
     // MARK: BTPeripheralService delegate
     
-    func dataToBroadcastForPeripheralService(_ service: BTLEPeripheralService) -> Data {
-        return self.dataSource!.dataToBroadcastForBTDiscoveryManager(manager: self)
+    func dataToBroadcastForPeripheralService(_ service: BTLEPeripheralService, peripheralIdentifier: String) -> Data {
+        return self.dataSource!.dataToBroadcastForBTDiscoveryManager(manager: self, peripheralIdentifier: peripheralIdentifier)
     }
     
     func peripheralServiceDidUpdateState(_ service: BTLEPeripheralService) {

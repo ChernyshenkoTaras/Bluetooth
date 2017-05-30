@@ -14,9 +14,11 @@ class Settings {
     private let ImageIdentifier = "ImageIdentifier"
     
     static let current = Settings(userDefaults: UserDefaults.standard)
+    let identifier: Int
     
     private init(userDefaults: UserDefaults? = nil) {
         self.userDefaults = userDefaults
+        identifier = Int(arc4random_uniform(1000000))
     }
     
     private let userDefaults: UserDefaults?

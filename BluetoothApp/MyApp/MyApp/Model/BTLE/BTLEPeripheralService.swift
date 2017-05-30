@@ -10,7 +10,7 @@ import Foundation
 import CoreBluetooth
 
 protocol BTLEPeripheralServiceDelegate: class {
-    func dataToBroadcastForPeripheralService(_ service: BTLEPeripheralService) -> Data
+    func dataToBroadcastForPeripheralService(_ service: BTLEPeripheralService, peripheralIdentifier identifier: String) -> Data
     func peripheralServiceDidUpdateState(_ service: BTLEPeripheralService)
 }
 
@@ -49,11 +49,8 @@ class BTLEPeripheralService: NSObject, CBPeripheralManagerDelegate {
         self.peripheralManager!.startAdvertising([
             CBAdvertisementDataServiceUUIDsKey : [transferServiceUUID]
             ])
+
         print("self.peripheralManager powered on.")
-        
-        guard let data =  self.delegate?.dataToBroadcastForPeripheralService(self) else {
-            return
-        }
 
         transferCharacteristic = CBMutableCharacteristic(
             type: transferCharacteristicUUID,
@@ -81,7 +78,7 @@ class BTLEPeripheralService: NSObject, CBPeripheralManagerDelegate {
     var index = 0
     
     func peripheralManager(_ peripheral: CBPeripheralManager, didReceiveRead request: CBATTRequest) {
-        guard let data =  self.delegate?.dataToBroadcastForPeripheralService(self) else {
+        guard let data =  self.delegate?.dataToBroadcastForPeripheralService(self, peripheralIdentifier: "\(Settings.current.identifier)") else {
             return
         }
 

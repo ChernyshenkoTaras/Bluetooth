@@ -26,15 +26,16 @@ class ViewController: UIViewController, UITableViewDelegate,
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
         self.tableView?.delegate = self
         self.tableView?.dataSource = self
-        
+//
         self.manager.personDelegate = self
     }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        manager.startMode(mode: .Duplex)
+        self.manager.startMode(mode: .Duplex)
     }
     //MARK: UITableViewDataSource methods
     
