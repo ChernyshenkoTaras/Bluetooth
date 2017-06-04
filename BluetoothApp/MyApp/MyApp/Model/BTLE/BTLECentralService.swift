@@ -30,6 +30,7 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
     
     weak var delegate: BTLECentralServiceDelegate?
     private var peripherals: [CBPeripheral] = []
+    private var discoveredPeripherals: [CBPeripheral] = []
     
     var state: CBCentralManagerState?
     var rssis: [String : String] = [:]
@@ -50,6 +51,7 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
     }
     
     func stop() {
+        self.discoveredPeripherals = []
         self.centralManager?.stopScan()
 //        for peripheral in self.peripherals {
 //            self.centralManager?.cancelPeripheralConnection(peripheral)
@@ -79,6 +81,8 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
     }
     
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
+        
+        if self.discoveredPeripherals.contains(peripheral) { return }
         
         self.delegate?.centralService(self, discover: peripheral.identifier.uuidString)
         
@@ -146,6 +150,8 @@ class BTLECentralService: NSObject, CBCentralManagerDelegate,
             self.delegate?.centralService(self, didReceive: self.data[peripheral.identifier.uuidString]! as Data,
                 from: peripheral.identifier.uuidString)
             self.data[peripheral.identifier.uuidString] = nil
+            self.discoveredPeripherals.append(peripheral)
+            self.centralManager?.cancelPeripheralConnection(peripheral)
         } else {
             if self.data[peripheral.identifier.uuidString] == nil {
                 self.data[peripheral.identifier.uuidString] = NSMutableData()

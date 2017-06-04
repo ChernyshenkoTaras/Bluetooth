@@ -29,7 +29,6 @@ class ViewController: UIViewController, UITableViewDelegate,
         
         self.tableView?.delegate = self
         self.tableView?.dataSource = self
-//
         self.manager.personDelegate = self
     }
     
